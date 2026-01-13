@@ -65,7 +65,7 @@ def extract_features():
     # 4. Save to disk
     # Concatenate all batches into one big tensor
     full_dataset = torch.cat(all_features, dim=0)
-    print(f"Extraction complete." 
+    print(f"Extraction complete."
           f"Saving tensor of shape {full_dataset.shape} to {OUTPUT_PATH}...")
     torch.save(full_dataset, OUTPUT_PATH)
     print("Done!")

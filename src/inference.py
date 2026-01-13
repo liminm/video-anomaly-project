@@ -1,19 +1,19 @@
+
+import cv2
 import torch
 import torch.nn as nn
 from torchvision import models, transforms
 from torchvision.models import ResNet18_Weights
-import numpy as np
-import cv2
-import os
 
 from src.model import VideoPredictor
+
 
 class AnomalyDetector:
     def __init__(self, model_path="models/lstm_model.pth"):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         if torch.backends.mps.is_available():
             self.device = "mps"
-            
+
         print(f"Loading inference pipeline on {self.device}...")
 
         # 1. Load the ResNet Feature Extractor
@@ -42,7 +42,7 @@ class AnomalyDetector:
         """
         cap = cv2.VideoCapture(video_path)
         frames = []
-        
+
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
@@ -52,9 +52,9 @@ class AnomalyDetector:
             # Apply transforms
             frame_tensor = self.transform(frame)
             frames.append(frame_tensor)
-            
+
         cap.release()
-        
+
         if not frames:
             raise ValueError("No frames read from video")
 
@@ -68,7 +68,7 @@ class AnomalyDetector:
         # 1. Get raw frames
         video_tensor = self.preprocess_video(video_path)
         seq_len = len(video_tensor)
-        
+
         if seq_len < 2:
             return {"error": "Video too short. Need at least 2 frames."}
 
@@ -81,7 +81,7 @@ class AnomalyDetector:
                 batch = video_tensor[i:i+batch_size].to(self.device)
                 feat = self.encoder(batch)
                 features.append(feat)
-        
+
         features = torch.cat(features) # Shape: (Seq_Len, 512)
 
         # 3. Run LSTM Prediction
@@ -91,11 +91,11 @@ class AnomalyDetector:
 
         with torch.no_grad():
             # LSTM returns predictions for the entire sequence
-            predictions = self.predictor(input_seq) 
+            predictions = self.predictor(input_seq)
             # Note: Our model definition currently returns only the *last* step.
-            # We need to tweak it slightly if we want the full sequence, 
+            # We need to tweak it slightly if we want the full sequence,
             # but for now, let's just predict the NEXT frame based on the window.
-            
+
             # For simplicity in this project version:
             # Let's just predict the final frame surprise to keep it simple.
             pass
@@ -104,21 +104,21 @@ class AnomalyDetector:
         # We will iterate through the video with a sliding window of 10 frames
         scores = []
         window_size = 10
-        
+
         if seq_len <= window_size:
              return {"error": f"Video too short. Need > {window_size} frames."}
 
         with torch.no_grad():
             for t in range(seq_len - window_size):
                 # Input: Frames t to t+9
-                window = features[t : t+window_size].unsqueeze(0) 
-                
+                window = features[t : t+window_size].unsqueeze(0)
+
                 # Predict Frame t+10
                 predicted_vector = self.predictor(window)
-                
+
                 # Actual Frame t+10
                 actual_vector = features[t+window_size].unsqueeze(0)
-                
+
                 # Calculate distance (MSE)
                 loss = nn.MSELoss()(predicted_vector, actual_vector)
                 scores.append(loss.item())
