@@ -8,13 +8,13 @@ from torchvision import transforms
 from unet_model import UNet
 
 # Config
-TEST_DIR = "data/UCSD_Anomaly_Dataset.v1p2/UCSDped2/Test/Test002"
+TEST_DIR = "data/UCSD_Anomaly_Dataset.v1p2/UCSDped2/Test/Test004"
 MODEL_PATH = "models/unet_video.pth"
-OUTPUT_FILE = "unet_result_smooth.gif"
+OUTPUT_FILE = "unet_result_final.gif"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 def detect():
-    print("Running U-Net Prediction with Temporal Smoothing...")
+    print("Running Final U-Net Detection (Top-50)...")
     model = UNet().to(DEVICE)
     model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
     model.eval()
@@ -28,7 +28,6 @@ def detect():
     files = sorted(glob.glob(os.path.join(TEST_DIR, "*.tif")))
     gif_frames = []
     
-    # Store raw scores to calculate the smoothed average
     raw_scores = []
     smoothed_scores = []
 
@@ -49,15 +48,13 @@ def detect():
             motion_mask = (np.abs(curr_np - prev_np) > 0.05).astype(float)
             masked_diff = diff * motion_mask
             
-            # 4. TOP-K SCORING
-            # Average of the 200 worst pixels
-            top_k_pixels = np.sort(masked_diff.flatten())[::-1][:200]
+            # 4. TOP-K SCORING (TUNED)
+            # Changed from 200 -> 50 to avoid diluting the score with zeros
+            top_k_pixels = np.sort(masked_diff.flatten())[::-1][:50]
             raw_score = np.mean(top_k_pixels)
             raw_scores.append(raw_score)
             
-            # 5. TEMPORAL SMOOTHING (The Fix)
-            # Take the average of the last 5 frames
-            # This fills in the gaps where the score briefly dips
+            # 5. TEMPORAL SMOOTHING
             if len(raw_scores) < 5:
                 smooth_score = raw_score
             else:
@@ -77,26 +74,24 @@ def detect():
             pil_img = Image.fromarray(combined)
             draw = ImageDraw.Draw(pil_img)
             
-            # 6. Calibration
+            # 6. CALIBRATION (TUNED)
             if i < 34:
                 threshold = 1.0
             elif i == 34:
-                # Calibrate on the SMOOTHED scores of normal walkers
-                # Using 1.2x margin (tighter than before because smoothing reduces noise)
+                # Lowered margin from 1.2 -> 1.1 for higher sensitivity
                 normal_max = np.max(smoothed_scores[:30])
-                threshold = normal_max * 1.2
+                threshold = normal_max * 1.1
                 print(f"Calibration Complete. Threshold: {threshold:.4f}")
             
             status = "NORMAL"
             color = (0, 255, 0)
             
-            # Check against the SMOOTH score
             if i > 34 and smooth_score > threshold:
                 status = "ANOMALY"
                 color = (255, 0, 0)
                 draw.rectangle([(0,0), (255,255)], outline="red", width=5)
                 
-            draw.text((10, 10), f"SmoothScore: {smooth_score:.4f}", fill="white")
+            draw.text((10, 10), f"Score: {smooth_score:.4f}", fill="white")
             draw.text((10, 30), f"Limit: {threshold:.4f}", fill="yellow")
             draw.text((10, 230), status, fill=color)
             
