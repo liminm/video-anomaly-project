@@ -8,7 +8,7 @@ from torchvision import transforms
 from unet_lstm import RecurrentUNet
 
 # Config
-TEST_DIR = "data/UCSD_Anomaly_Dataset.v1p2/UCSDped2/Test/Test002" 
+TEST_DIR = "data/UCSD_Anomaly_Dataset.v1p2/UCSDped2/Test/Test004" 
 MODEL_PATH = "models/unet_lstm.pth"
 OUTPUT_FILE = "lstm_result.gif"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
