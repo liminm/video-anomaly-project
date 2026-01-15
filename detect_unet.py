@@ -8,7 +8,7 @@ from torchvision import transforms
 from unet_model import UNet
 
 # Config
-TEST_DIR = "data/UCSD_Anomaly_Dataset.v1p2/UCSDped2/Test/Test004"
+TEST_DIR = "data/UCSD_Anomaly_Dataset.v1p2/UCSDped2/Test/Test006"
 MODEL_PATH = "models/unet_video.pth"
 OUTPUT_FILE = "unet_result_final.gif"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
