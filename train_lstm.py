@@ -11,6 +11,7 @@ from unet_lstm import RecurrentUNet
 # Config
 DATA_DIR = "data/UCSD_Anomaly_Dataset.v1p2/UCSDped2/Train"
 MODEL_PATH = "models/unet_lstm.pth"
+ONNX_PATH = "models/unet_lstm.onnx"
 BATCH_SIZE = 4   # LSTMs use more VRAM, so we lower the batch size
 SEQ_LEN = 8      # Train on clips of 8 frames
 EPOCHS = 8
@@ -81,6 +82,22 @@ def train():
             
         print(f"Epoch {epoch+1} Average Loss: {total_loss/len(loader):.5f}")
         torch.save(model.state_dict(), MODEL_PATH)
+
+    # Export final model to ONNX
+    model.eval()
+    model_cpu = model.to("cpu")
+    dummy_input = torch.zeros(1, SEQ_LEN, 1, 256, 256, dtype=torch.float32)
+    torch.onnx.export(
+        model_cpu,
+        dummy_input,
+        ONNX_PATH,
+        input_names=["input"],
+        output_names=["output"],
+        dynamic_axes={"input": {0: "batch"}, "output": {0: "batch"}},
+        opset_version=12,
+        dynamo=False,
+    )
+    print(f"ONNX model saved to {ONNX_PATH}")
 
 if __name__ == "__main__":
     train()
