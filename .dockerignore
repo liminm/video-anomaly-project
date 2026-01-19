@@ -19,3 +19,6 @@ generated_results/
 *.avi
 *.npy
 *.tar.gz
+!models/
+!models/unet_lstm.onnx
+!models/unet_lstm.onnx.data

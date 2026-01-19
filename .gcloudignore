@@ -1,0 +1,21 @@
+#!include:.gitignore
+
+# Extra exclusions to keep Cloud Build context small
+.git/
+notebooks/
+data/
+generated_results/
+.venv/
+__pycache__/
+*.pt
+*.pth
+*.gif
+*.mp4
+*.avi
+*.npy
+*.tar.gz
+
+# Include the ONNX model in the build context
+!models/
+!models/unet_lstm.onnx
+!models/unet_lstm.onnx.data

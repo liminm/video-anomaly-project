@@ -1,4 +1,5 @@
 import os
+import time
 
 import requests
 import streamlit as st
@@ -15,9 +16,16 @@ st.sidebar.text(f"API: {API_URL}")
 
 @st.cache_data(ttl=30)
 def fetch_clips():
-    resp = requests.get(f"{API_URL}/clips", timeout=10)
-    resp.raise_for_status()
-    return resp.json()["clips"]
+    last_exc = None
+    for _ in range(5):
+        try:
+            resp = requests.get(f"{API_URL}/clips", timeout=10)
+            resp.raise_for_status()
+            return resp.json()["clips"]
+        except Exception as exc:
+            last_exc = exc
+            time.sleep(2)
+    raise last_exc
 
 
 try:

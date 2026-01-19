@@ -7,6 +7,7 @@ import onnxruntime as ort
 from PIL import Image, ImageDraw
 
 FRAME_EXTS = (".tif", ".tiff", ".png", ".jpg", ".jpeg", ".bmp")
+CACHE_DIR_DEFAULT = Path("/tmp/ucsd_cache")
 
 # Detection config (mirrors detect_lstm.py)
 BOX_SIZE = 40
@@ -23,7 +24,7 @@ def _list_frames(clip_dir: Path):
     return []
 
 
-def list_clips(root_dir: Path):
+def _list_local_clips(root_dir: Path):
     clips = []
     for path in sorted(root_dir.iterdir()):
         if not path.is_dir():
@@ -31,6 +32,99 @@ def list_clips(root_dir: Path):
         if _list_frames(path):
             clips.append(path.name)
     return clips
+
+
+def _normalize_prefix(prefix: str | None):
+    if not prefix:
+        return ""
+    return prefix.strip("/") + "/"
+
+
+def _get_gcs_client():
+    try:
+        from google.cloud import storage
+    except ImportError as exc:
+        raise ImportError(
+            "google-cloud-storage is required when using GCS data"
+        ) from exc
+    return storage.Client()
+
+
+def _list_gcs_clips(bucket_name: str, prefix: str | None):
+    client = _get_gcs_client()
+    prefix = _normalize_prefix(prefix)
+    iterator = client.list_blobs(bucket_name, prefix=prefix, delimiter="/")
+
+    prefixes = set()
+    for page in iterator.pages:
+        prefixes.update(page.prefixes)
+
+    clips = []
+    for p in sorted(prefixes):
+        name = p.rstrip("/").split("/")[-1]
+        if name:
+            clips.append(name)
+
+    return clips
+
+
+def list_available_clips(
+    root_dir: Path,
+    gcs_bucket: str | None = None,
+    gcs_prefix: str | None = None,
+):
+    if gcs_bucket:
+        return _list_gcs_clips(gcs_bucket, gcs_prefix)
+    return _list_local_clips(root_dir)
+
+
+def _download_gcs_clip(
+    bucket_name: str,
+    prefix: str | None,
+    clip: str,
+    dest_dir: Path,
+):
+    client = _get_gcs_client()
+    prefix = _normalize_prefix(prefix)
+    clip_prefix = f"{prefix}{clip}/"
+
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    found = False
+    for blob in client.list_blobs(bucket_name, prefix=clip_prefix):
+        rel = blob.name[len(clip_prefix) :]
+        if not rel or rel.endswith("/"):
+            continue
+        found = True
+        local_path = dest_dir / rel
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        blob.download_to_filename(local_path)
+
+    if not found:
+        raise ValueError(f"Clip not found in GCS: {clip}")
+
+
+def resolve_clip_dir(
+    clip: str,
+    root_dir: Path,
+    gcs_bucket: str | None = None,
+    gcs_prefix: str | None = None,
+    cache_dir: Path | None = None,
+):
+    if not gcs_bucket:
+        return root_dir / clip
+
+    cache_root = cache_dir or CACHE_DIR_DEFAULT
+    local_dir = cache_root / clip
+    if _list_frames(local_dir):
+        return local_dir
+
+    _download_gcs_clip(gcs_bucket, gcs_prefix, clip, local_dir)
+
+    if not _list_frames(local_dir):
+        raise ValueError(f"No frames found after download for clip: {clip}")
+
+    return local_dir
 
 
 def _load_gray_frame(path: Path, size: tuple[int, int]):
@@ -58,7 +152,13 @@ class LSTMAnomalyDetector:
         self.seq_len = seq_len
         self.size = (width, height)
 
-    def analyze_clip(self, clip_dir: Path, output_dir: Path, save_gif: bool = True, stride: int = 1):
+    def analyze_clip(
+        self,
+        clip_dir: Path,
+        output_dir: Path,
+        save_gif: bool = True,
+        stride: int = 1,
+    ):
         files = _list_frames(clip_dir)
         if len(files) < 2:
             raise ValueError(f"Not enough frames in {clip_dir}")
