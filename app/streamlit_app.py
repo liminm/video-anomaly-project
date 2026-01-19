@@ -1,10 +1,11 @@
+import base64
 import os
 import time
 
 import requests
 import streamlit as st
 
-API_URL = os.getenv("API_URL", "http://localhost:8000")
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8001")
 
 st.set_page_config(page_title="UCSD LSTM Anomaly Explorer", layout="wide")
 
@@ -60,9 +61,24 @@ if st.button("Run detection"):
     gif_path = data.get("gif_path")
     gif_url = data.get("gif_url")
 
-    if gif_path and os.path.exists(gif_path):
+    if gif_url:
+        try:
+            resp = requests.get(f"{API_URL}{gif_url}", timeout=30)
+            resp.raise_for_status()
+            content = resp.content
+            if not content.startswith(b"GIF"):
+                raise ValueError(f"Unexpected GIF header: {content[:10]!r}")
+            b64 = base64.b64encode(content).decode("ascii")
+            st.markdown(
+                f'<img src="data:image/gif;base64,{b64}" alt="Anomaly visualization">',
+                unsafe_allow_html=True,
+            )
+        except Exception as exc:
+            if gif_path and os.path.exists(gif_path):
+                st.image(gif_path, caption="Anomaly visualization")
+            else:
+                st.warning(f"Failed to load GIF: {exc}")
+    elif gif_path and os.path.exists(gif_path):
         st.image(gif_path, caption="Anomaly visualization")
-    elif gif_url:
-        st.image(f"{API_URL}{gif_url}")
     else:
         st.info("No visualization returned.")
