@@ -2,6 +2,7 @@ from collections import deque
 from pathlib import Path
 
 import cv2
+import imageio.v2 as imageio
 import numpy as np
 import onnxruntime as ort
 from PIL import Image, ImageDraw
@@ -158,6 +159,7 @@ class LSTMAnomalyDetector:
         output_dir: Path,
         save_gif: bool = True,
         stride: int = 1,
+        gif_stride: int = 1,
     ):
         files = _list_frames(clip_dir)
         if len(files) < 2:
@@ -165,7 +167,10 @@ class LSTMAnomalyDetector:
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        gif_frames = []
+        gif_writer = None
+        gif_path = None
+        gif_frame_index = 0
+        gif_frame_count = 0
         scores = []
         alarm_frames = []
         alarm_active = False
@@ -178,6 +183,8 @@ class LSTMAnomalyDetector:
 
         if stride < 1:
             raise ValueError("stride must be >= 1")
+        if gif_stride < 1:
+            raise ValueError("gif_stride must be >= 1")
 
         for i, path in enumerate(files):
             if i % stride != 0:
@@ -228,91 +235,107 @@ class LSTMAnomalyDetector:
                     alarm_frames.append(i)
 
                 if save_gif:
-                    img_cv = cv2.imread(str(path))
-                    img_cv = cv2.resize(img_cv, self.size)
+                    write_frame = gif_frame_index % gif_stride == 0
+                    if write_frame:
+                        img_cv = cv2.imread(str(path))
+                        img_cv = cv2.resize(img_cv, self.size)
 
-                    heatmap_norm = np.clip(
-                        smooth_density_map / float(THRESH_TRIGGER_COUNT) * 255, 0, 255
-                    ).astype(np.uint8)
-                    heatmap = cv2.applyColorMap(heatmap_norm, cv2.COLORMAP_JET)
+                        heatmap_norm = np.clip(
+                            smooth_density_map / float(THRESH_TRIGGER_COUNT) * 255, 0, 255
+                        ).astype(np.uint8)
+                        heatmap = cv2.applyColorMap(heatmap_norm, cv2.COLORMAP_JET)
 
-                    vis_hud = img_cv.copy()
-                    overlay = vis_hud.copy()
+                        vis_hud = img_cv.copy()
+                        overlay = vis_hud.copy()
 
-                    mask_paint = (density_map_raw > 100).astype(np.uint8)
-                    precise_mask = cv2.bitwise_and(closed_map, closed_map, mask=mask_paint)
-                    contours_paint, _ = cv2.findContours(
-                        precise_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-                    )
+                        mask_paint = (density_map_raw > 100).astype(np.uint8)
+                        precise_mask = cv2.bitwise_and(
+                            closed_map, closed_map, mask=mask_paint
+                        )
+                        contours_paint, _ = cv2.findContours(
+                            precise_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+                        )
 
-                    for cnt in contours_paint:
-                        if cv2.contourArea(cnt) > 20:
-                            hull = cv2.convexHull(cnt)
-                            cv2.drawContours(overlay, [hull], -1, (0, 0, 255), -1)
+                        for cnt in contours_paint:
+                            if cv2.contourArea(cnt) > 20:
+                                hull = cv2.convexHull(cnt)
+                                cv2.drawContours(overlay, [hull], -1, (0, 0, 255), -1)
 
-                    cv2.addWeighted(overlay, 0.4, vis_hud, 0.6, 0, vis_hud)
+                        cv2.addWeighted(overlay, 0.4, vis_hud, 0.6, 0, vis_hud)
 
-                    mask_box = (smooth_density_map > THRESH_VIZ_BOX).astype(np.uint8)
-                    contours_box, _ = cv2.findContours(
-                        mask_box, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-                    )
+                        mask_box = (smooth_density_map > THRESH_VIZ_BOX).astype(np.uint8)
+                        contours_box, _ = cv2.findContours(
+                            mask_box, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+                        )
 
-                    for cnt in contours_box:
-                        if cv2.contourArea(cnt) > 50:
-                            x, y, w, h = cv2.boundingRect(cnt)
-                            color = (0, 0, 255)
+                        for cnt in contours_box:
+                            if cv2.contourArea(cnt) > 50:
+                                x, y, w, h = cv2.boundingRect(cnt)
+                                color = (0, 0, 255)
 
-                            d = 10
-                            t = 2
-                            cv2.line(vis_hud, (x, y), (x + d, y), color, t)
-                            cv2.line(vis_hud, (x, y), (x, y + d), color, t)
-                            cv2.line(vis_hud, (x + w, y), (x + w - d, y), color, t)
-                            cv2.line(vis_hud, (x + w, y), (x + w, y + d), color, t)
-                            cv2.line(vis_hud, (x, y + h), (x + d, y + h), color, t)
-                            cv2.line(vis_hud, (x, y + h), (x, y + h - d), color, t)
-                            cv2.line(vis_hud, (x + w, y + h), (x + w - d, y + h), color, t)
-                            cv2.line(vis_hud, (x + w, y + h), (x + w, y + h - d), color, t)
+                                d = 10
+                                t = 2
+                                cv2.line(vis_hud, (x, y), (x + d, y), color, t)
+                                cv2.line(vis_hud, (x, y), (x, y + d), color, t)
+                                cv2.line(vis_hud, (x + w, y), (x + w - d, y), color, t)
+                                cv2.line(vis_hud, (x + w, y), (x + w, y + d), color, t)
+                                cv2.line(vis_hud, (x, y + h), (x + d, y + h), color, t)
+                                cv2.line(vis_hud, (x, y + h), (x, y + h - d), color, t)
+                                cv2.line(
+                                    vis_hud, (x + w, y + h), (x + w - d, y + h), color, t
+                                )
+                                cv2.line(
+                                    vis_hud, (x + w, y + h), (x + w, y + h - d), color, t
+                                )
 
-                            cv2.putText(
-                                vis_hud,
-                                "ANOMALY",
-                                (x, y - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX,
-                                0.5,
-                                color,
-                                1,
+                                cv2.putText(
+                                    vis_hud,
+                                    "ANOMALY",
+                                    (x, y - 10),
+                                    cv2.FONT_HERSHEY_SIMPLEX,
+                                    0.5,
+                                    color,
+                                    1,
+                                )
+
+                        status = "ALARM ACTIVE" if alarm_active else "MONITORING"
+                        border_color = (0, 0, 255) if alarm_active else (0, 255, 0)
+
+                        if alarm_active:
+                            for panel in (heatmap, vis_hud):
+                                cv2.rectangle(panel, (0, 0), (255, 255), border_color, 5)
+
+                        combined = np.hstack((heatmap, vis_hud))
+                        pil_img = Image.fromarray(
+                            cv2.cvtColor(combined, cv2.COLOR_BGR2RGB)
+                        )
+                        draw = ImageDraw.Draw(pil_img)
+                        draw.text((10, 10), f"Density Heatmap ({score:.0f})", fill="white")
+                        draw.text((266, 10), "Inference Output", fill="white")
+                        draw.text((266, 230), status, fill=border_color[::-1])
+
+                        if gif_writer is None:
+                            output_name = f"lstm_{clip_dir.name}.gif"
+                            gif_path = output_dir / output_name
+                            gif_writer = imageio.get_writer(
+                                gif_path, mode="I", duration=0.1
                             )
+                        gif_writer.append_data(np.asarray(pil_img))
+                        gif_frame_count += 1
 
-                    status = "ALARM ACTIVE" if alarm_active else "MONITORING"
-                    border_color = (0, 0, 255) if alarm_active else (0, 255, 0)
-
-                    if alarm_active:
-                        for panel in (heatmap, vis_hud):
-                            cv2.rectangle(panel, (0, 0), (255, 255), border_color, 5)
-
-                    combined = np.hstack((heatmap, vis_hud))
-                    pil_img = Image.fromarray(cv2.cvtColor(combined, cv2.COLOR_BGR2RGB))
-                    draw = ImageDraw.Draw(pil_img)
-                    draw.text((10, 10), f"Density Heatmap ({score:.0f})", fill="white")
-                    draw.text((266, 10), "Inference Output", fill="white")
-                    draw.text((266, 230), status, fill=border_color[::-1])
-
-                    gif_frames.append(pil_img)
+                    gif_frame_index += 1
 
             window.append(raw[np.newaxis, ...])
             prev_raw = raw
 
-        gif_path = None
-        if save_gif and gif_frames:
-            output_name = f"lstm_{clip_dir.name}.gif"
-            gif_path = output_dir / output_name
-            gif_frames[0].save(
-                gif_path,
-                save_all=True,
-                append_images=gif_frames[1:],
-                duration=100,
-                loop=0,
-            )
+        if gif_writer is not None:
+            gif_writer.close()
+            if gif_frame_count == 0 and gif_path is not None:
+                try:
+                    gif_path.unlink()
+                except OSError:
+                    pass
+                gif_path = None
 
         return {
             "clip": clip_dir.name,

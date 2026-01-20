@@ -31,6 +31,7 @@ class AnalyzeRequest(BaseModel):
     clip: str
     save_gif: bool = True
     stride: int = 1
+    gif_stride: int = 1
 
 
 @app.get("/clips")
@@ -62,6 +63,7 @@ def analyze_clip(req: AnalyzeRequest):
         OUTPUT_DIR,
         save_gif=req.save_gif,
         stride=req.stride,
+        gif_stride=req.gif_stride,
     )
 
     if result.get("gif_path"):
