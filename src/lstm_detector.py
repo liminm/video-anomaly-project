@@ -1,4 +1,5 @@
 from collections import deque
+import os
 from pathlib import Path
 
 import cv2
@@ -138,7 +139,29 @@ def _load_gray_frame(path: Path, size: tuple[int, int]):
 
 class LSTMAnomalyDetector:
     def __init__(self, model_path: str):
-        self.session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
+        session_options = ort.SessionOptions()
+        session_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+
+        intra = os.getenv("ORT_INTRA_OP_THREADS")
+        inter = os.getenv("ORT_INTER_OP_THREADS")
+        execution_mode = os.getenv("ORT_EXECUTION_MODE")
+
+        if intra:
+            session_options.intra_op_num_threads = int(intra)
+        if inter:
+            session_options.inter_op_num_threads = int(inter)
+        if execution_mode:
+            mode = execution_mode.lower()
+            if mode == "parallel":
+                session_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL
+            elif mode == "sequential":
+                session_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+
+        self.session = ort.InferenceSession(
+            model_path,
+            sess_options=session_options,
+            providers=["CPUExecutionProvider"],
+        )
         self.input_name = self.session.get_inputs()[0].name
         self.output_name = self.session.get_outputs()[0].name
 
@@ -160,8 +183,15 @@ class LSTMAnomalyDetector:
         save_gif: bool = True,
         stride: int = 1,
         gif_stride: int = 1,
+        max_frames: int | None = None,
     ):
         files = _list_frames(clip_dir)
+        if max_frames is not None and max_frames <= 0:
+            max_frames = None
+        if max_frames is not None:
+            if max_frames < 2:
+                raise ValueError("max_frames must be >= 2")
+            files = files[:max_frames]
         if len(files) < 2:
             raise ValueError(f"Not enough frames in {clip_dir}")
 

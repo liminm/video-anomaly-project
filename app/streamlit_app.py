@@ -25,6 +25,8 @@ if "last_stride" not in st.session_state:
     st.session_state.last_stride = None
 if "last_gif_stride" not in st.session_state:
     st.session_state.last_gif_stride = None
+if "last_max_frames" not in st.session_state:
+    st.session_state.last_max_frames = None
 
 
 @st.cache_data(ttl=30)
@@ -50,7 +52,25 @@ except Exception as exc:
 clip = st.selectbox("Select a clip", clips)
 
 quick_mode = st.toggle("Quick mode (every 4th frame)", value=False)
-stride = 4 if quick_mode else 1
+manual_stride = st.slider(
+    "Processing stride",
+    min_value=1,
+    max_value=6,
+    value=1,
+    help="Higher stride is faster but skips frames.",
+    disabled=quick_mode,
+)
+stride = 4 if quick_mode else manual_stride
+
+max_frames = st.number_input(
+    "Max frames (0 = all)",
+    min_value=0,
+    max_value=1000,
+    value=0,
+    step=50,
+    help="Limit frames per request to reduce latency.",
+)
+max_frames_payload = None if int(max_frames) == 0 else int(max_frames)
 save_gif = st.toggle("Generate GIF", value=True)
 gif_stride = st.slider(
     "GIF frame step",
@@ -73,6 +93,7 @@ if st.button("Run detection"):
                     "save_gif": save_gif,
                     "stride": stride,
                     "gif_stride": gif_stride,
+                    "max_frames": max_frames_payload,
                 },
                 timeout=API_TIMEOUT,
             )
@@ -82,6 +103,7 @@ if st.button("Run detection"):
             st.session_state.last_clip = clip
             st.session_state.last_stride = stride
             st.session_state.last_gif_stride = gif_stride
+            st.session_state.last_max_frames = max_frames_payload
         except requests.exceptions.Timeout:
             st.session_state.last_error = (
                 f"Request timed out after {API_TIMEOUT}s. "
@@ -98,6 +120,7 @@ if st.session_state.last_result:
     clip_label = st.session_state.last_clip or clip
     stride_label = data.get("stride", st.session_state.last_stride or stride)
     gif_stride_label = st.session_state.last_gif_stride or gif_stride
+    max_frames_label = st.session_state.last_max_frames
 
     st.subheader("Results")
     st.write(f"Clip: {clip_label}")
@@ -105,6 +128,7 @@ if st.session_state.last_result:
     st.write(f"Alarm frames: {len(data['alarm_frames'])}")
     st.write(f"Stride: {stride_label}")
     st.write(f"GIF step: {gif_stride_label}")
+    st.write(f"Max frames: {max_frames_label or 'all'}")
 
     if data.get("scores"):
         st.line_chart(data["scores"], height=200)
