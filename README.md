@@ -111,16 +111,27 @@ Environment variables (optional):
 ## Docker
 Build:
 ```bash
-docker build -t video-anomaly .
+docker build -t video-anomaly-app .
 ```
 
-Run (mount data and models):
+Run (mount data + outputs, serve API + UI):
 ```bash
 docker run --rm \
   -p 8001:8001 -p 8501:8501 \
+  -e UCSD_CLIP_ROOT=/app/data/UCSD_Anomaly_Dataset.v1p2/UCSDped2/Test \
   -v "$PWD/data:/app/data" \
-  -v "$PWD/models:/app/models" \
-  video-anomaly
+  -v "$PWD/generated_results:/app/generated_results" \
+  video-anomaly-app
+```
+
+Open the UI at:
+```
+http://localhost:8501
+```
+
+Optional (load clips from GCS instead of local disk):
+```
+-e GCS_BUCKET=... -e GCS_PREFIX=... -e GCS_CACHE_DIR=/app/data/gcs_cache
 ```
 
 ## Notes on Reproducibility
