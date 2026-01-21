@@ -11,7 +11,4 @@ wheels/
 data/
 
 notebooks/features.pt
-*.pth
-*.pt
-models/
 logs/
