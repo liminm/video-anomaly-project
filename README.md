@@ -5,11 +5,14 @@ motion and flagging frames where reconstruction error spikes.
 
 Deployed app: https://video-anomaly-app-277455458775.europe-west3.run.app
 
-![App demo](generated_results/lstm_Test004.gif)
-Caption: Run detection on a clip and review the anomaly heatmap and overlay.
+![Clip selection](images/selection.gif)
+Caption: Select a test clip from the dropdown and launch detection.
 
-![App demo](generated_results/lstm_Test003.gif)
-Caption: The stream shows frame-level scores and highlighted anomalous regions.
+![Results panel](images/result.png)
+Caption: Results summary with max score, alarm frames, and the score timeline.
+
+![Anomaly visualization](images/video.gif)
+Caption: The video overlay highlights detected anomalies (e.g., a bike or cart).
 
 ## Problem description
 Manual monitoring of CCTV streams is error-prone and expensive. This project

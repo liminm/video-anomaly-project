@@ -68,34 +68,14 @@ except Exception as exc:
 clip = st.selectbox("Select a clip", clips)
 
 quick_mode = st.toggle("Quick mode (every 4th frame)", value=False)
-manual_stride = st.slider(
-    "Processing stride",
-    min_value=1,
-    max_value=6,
-    value=1,
-    help="Higher stride is faster but skips frames.",
-    disabled=quick_mode,
+st.warning(
+    "Detection can take a long time on the server. "
+    "Lower the GIF scale for faster runs, or enable Quick mode (less accurate)."
 )
+manual_stride = 1
 stride = 4 if quick_mode else manual_stride
 
-max_frames = st.number_input(
-    "Max frames (0 = all)",
-    min_value=0,
-    max_value=1000,
-    value=0,
-    step=50,
-    help="Limit frames per request to reduce latency.",
-)
-max_frames_payload = None if int(max_frames) == 0 else int(max_frames)
 save_gif = st.toggle("Generate GIF", value=True)
-gif_stride = st.slider(
-    "GIF frame step",
-    min_value=1,
-    max_value=8,
-    value=1,
-    help="Save every Nth processed frame to the GIF to reduce memory.",
-    disabled=not save_gif,
-)
 gif_scale = st.slider(
     "GIF scale",
     min_value=0.25,
@@ -105,16 +85,54 @@ gif_scale = st.slider(
     help="Downscale the GIF to reduce memory and file size.",
     disabled=not save_gif,
 )
-gif_max_frames = st.number_input(
-    "Max GIF frames (0 = all)",
-    min_value=0,
-    max_value=1000,
-    value=0,
-    step=50,
-    help="Limit how many frames are written to the GIF.",
-    disabled=not save_gif,
-)
-gif_max_frames_payload = None if int(gif_max_frames) == 0 else int(gif_max_frames)
+
+with st.expander("More options"):
+    manual_stride = st.slider(
+        "Processing stride",
+        min_value=1,
+        max_value=6,
+        value=manual_stride,
+        help="Higher stride is faster but skips frames.",
+        disabled=quick_mode,
+    )
+    stride = 4 if quick_mode else manual_stride
+
+    max_frames = st.number_input(
+        "Max frames (0 = all)",
+        min_value=0,
+        max_value=1000,
+        value=0,
+        step=50,
+        help="Limit frames per request to reduce latency.",
+    )
+    max_frames_payload = None if int(max_frames) == 0 else int(max_frames)
+
+    gif_stride = st.slider(
+        "GIF frame step",
+        min_value=1,
+        max_value=8,
+        value=1,
+        help="Save every Nth processed frame to the GIF to reduce memory.",
+        disabled=not save_gif,
+    )
+
+    gif_max_frames = st.number_input(
+        "Max GIF frames (0 = all)",
+        min_value=0,
+        max_value=1000,
+        value=0,
+        step=50,
+        help="Limit how many frames are written to the GIF.",
+        disabled=not save_gif,
+    )
+    gif_max_frames_payload = None if int(gif_max_frames) == 0 else int(gif_max_frames)
+
+if "max_frames_payload" not in locals():
+    max_frames_payload = None
+if "gif_stride" not in locals():
+    gif_stride = 1
+if "gif_max_frames_payload" not in locals():
+    gif_max_frames_payload = None
 
 if st.button("Run detection"):
     st.session_state.last_error = None
