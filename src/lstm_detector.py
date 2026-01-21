@@ -184,6 +184,8 @@ class LSTMAnomalyDetector:
         stride: int = 1,
         gif_stride: int = 1,
         max_frames: int | None = None,
+        gif_scale: float = 1.0,
+        gif_max_frames: int | None = None,
     ):
         files = _list_frames(clip_dir)
         if max_frames is not None and max_frames <= 0:
@@ -201,6 +203,8 @@ class LSTMAnomalyDetector:
         gif_path = None
         gif_frame_index = 0
         gif_frame_count = 0
+        if gif_max_frames is not None and gif_max_frames <= 0:
+            gif_max_frames = None
         scores = []
         alarm_frames = []
         alarm_active = False
@@ -215,6 +219,9 @@ class LSTMAnomalyDetector:
             raise ValueError("stride must be >= 1")
         if gif_stride < 1:
             raise ValueError("gif_stride must be >= 1")
+        if gif_scale <= 0 or gif_scale > 1:
+            raise ValueError("gif_scale must be between 0 and 1")
+        scale = float(gif_scale)
 
         for i, path in enumerate(files):
             if i % stride != 0:
@@ -266,6 +273,8 @@ class LSTMAnomalyDetector:
 
                 if save_gif:
                     write_frame = gif_frame_index % gif_stride == 0
+                    if gif_max_frames is not None and gif_frame_count >= gif_max_frames:
+                        write_frame = False
                     if write_frame:
                         img_cv = cv2.imread(str(path))
                         img_cv = cv2.resize(img_cv, self.size)
@@ -336,13 +345,29 @@ class LSTMAnomalyDetector:
                                 cv2.rectangle(panel, (0, 0), (255, 255), border_color, 5)
 
                         combined = np.hstack((heatmap, vis_hud))
+                        if scale != 1.0:
+                            combined = cv2.resize(
+                                combined,
+                                (0, 0),
+                                fx=scale,
+                                fy=scale,
+                                interpolation=cv2.INTER_AREA,
+                            )
                         pil_img = Image.fromarray(
                             cv2.cvtColor(combined, cv2.COLOR_BGR2RGB)
                         )
                         draw = ImageDraw.Draw(pil_img)
-                        draw.text((10, 10), f"Density Heatmap ({score:.0f})", fill="white")
-                        draw.text((266, 10), "Inference Output", fill="white")
-                        draw.text((266, 230), status, fill=border_color[::-1])
+                        left_x = int(10 * scale)
+                        right_x = int((self.size[0] + 10) * scale)
+                        top_y = int(10 * scale)
+                        status_y = int((self.size[1] - 26) * scale)
+                        draw.text(
+                            (left_x, top_y),
+                            f"Density Heatmap ({score:.0f})",
+                            fill="white",
+                        )
+                        draw.text((right_x, top_y), "Inference Output", fill="white")
+                        draw.text((right_x, status_y), status, fill=border_color[::-1])
 
                         if gif_writer is None:
                             output_name = f"lstm_{clip_dir.name}.gif"

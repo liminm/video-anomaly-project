@@ -3,43 +3,70 @@ import torch.nn as nn
 from conv_lstm import ConvLSTMCell
 
 class RecurrentUNet(nn.Module):
-    def __init__(self):
+    def __init__(self, hidden_channels: int = 256, lstm_layers: int = 1, dropout: float = 0.0):
         super(RecurrentUNet, self).__init__()
-        
+        if lstm_layers < 1:
+            raise ValueError("lstm_layers must be >= 1")
+        if dropout < 0 or dropout >= 1:
+            raise ValueError("dropout must be in [0, 1)")
+
+        self.hidden_channels = hidden_channels
+        self.lstm_layers = lstm_layers
+        self.dropout = dropout
+
         # --- ENCODER ---
-        self.enc1 = self.conv_block(1, 32)
+        self.enc1 = self.conv_block(1, 32, dropout)
         self.pool1 = nn.MaxPool2d(2)
-        
-        self.enc2 = self.conv_block(32, 64)
+
+        self.enc2 = self.conv_block(32, 64, dropout)
         self.pool2 = nn.MaxPool2d(2)
-        
-        self.enc3 = self.conv_block(64, 128)
+
+        self.enc3 = self.conv_block(64, 128, dropout)
         self.pool3 = nn.MaxPool2d(2)
-        
+
         # --- BOTTLENECK (ConvLSTM) ---
-        self.bottleneck_lstm = ConvLSTMCell(128, 256, kernel_size=3, bias=True)
-        
+        lstm_cells = []
+        for layer_idx in range(lstm_layers):
+            input_dim = 128 if layer_idx == 0 else hidden_channels
+            lstm_cells.append(ConvLSTMCell(input_dim, hidden_channels, kernel_size=3, bias=True))
+        self.bottleneck_lstm = nn.ModuleList(lstm_cells)
+
         # --- DECODER ---
-        self.up3 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
-        self.dec3 = self.conv_block(256, 128)
-        
+        self.up3 = nn.ConvTranspose2d(hidden_channels, 128, kernel_size=2, stride=2)
+        self.dec3 = self.conv_block(256, 128, dropout)
+
         self.up2 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
-        self.dec2 = self.conv_block(128, 64)
-        
+        self.dec2 = self.conv_block(128, 64, dropout)
+
         self.up1 = nn.ConvTranspose2d(64, 32, kernel_size=2, stride=2)
-        self.dec1 = self.conv_block(64, 32)
-        
+        self.dec1 = self.conv_block(64, 32, dropout)
+
         self.final = nn.Conv2d(32, 1, kernel_size=1)
-        
-    def conv_block(self, in_c, out_c):
-        return nn.Sequential(
+
+    def conv_block(self, in_c, out_c, dropout: float):
+        layers = [
             nn.Conv2d(in_c, out_c, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_c),
             nn.ReLU(inplace=True),
             nn.Conv2d(out_c, out_c, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_c),
-            nn.ReLU(inplace=True)
-        )
+            nn.ReLU(inplace=True),
+        ]
+        if dropout > 0:
+            layers.append(nn.Dropout2d(dropout))
+        return nn.Sequential(*layers)
+
+    def _init_hidden(self, batch_size, image_size):
+        return [cell.init_hidden(batch_size, image_size) for cell in self.bottleneck_lstm]
+
+    def _normalize_hidden(self, hidden_state, batch_size, image_size):
+        if hidden_state is None:
+            return self._init_hidden(batch_size, image_size)
+        if isinstance(hidden_state, tuple):
+            hidden_state = [hidden_state]
+        if len(hidden_state) != self.lstm_layers:
+            return self._init_hidden(batch_size, image_size)
+        return hidden_state
 
     def forward(self, x, hidden_state=None):
         # Used for TRAINING (Sequence processing)
@@ -47,8 +74,7 @@ class RecurrentUNet(nn.Module):
         batch_size, seq_len, _, h, w = x.size()
         predictions = []
         
-        if hidden_state is None:
-            hidden_state = self.bottleneck_lstm.init_hidden(batch_size, (h//8, w//8))
+        hidden_state = self._normalize_hidden(hidden_state, batch_size, (h // 8, w // 8))
             
         for t in range(seq_len):
             input_frame = x[:, t, :, :, :]
@@ -64,8 +90,7 @@ class RecurrentUNet(nn.Module):
         # x shape: (Batch, 1, H, W) - Note: No sequence dimension here
         batch_size, _, h, w = x.size()
         
-        if hidden_state is None:
-            hidden_state = self.bottleneck_lstm.init_hidden(batch_size, (h//8, w//8))
+        hidden_state = self._normalize_hidden(hidden_state, batch_size, (h // 8, w // 8))
             
         # Encode
         e1 = self.enc1(x)
@@ -76,11 +101,15 @@ class RecurrentUNet(nn.Module):
         p3 = self.pool3(e3)
         
         # LSTM Update
-        h_next, c_next = self.bottleneck_lstm(p3, hidden_state)
-        new_hidden_state = (h_next, c_next)
+        x_lstm = p3
+        new_hidden_state = []
+        for layer_idx, cell in enumerate(self.bottleneck_lstm):
+            h_next, c_next = cell(x_lstm, hidden_state[layer_idx])
+            new_hidden_state.append((h_next, c_next))
+            x_lstm = h_next
         
         # Decode
-        d3 = self.up3(h_next)
+        d3 = self.up3(x_lstm)
         if d3.shape != e3.shape:
             d3 = torch.nn.functional.interpolate(d3, size=e3.shape[2:])
         d3 = torch.cat((d3, e3), dim=1)

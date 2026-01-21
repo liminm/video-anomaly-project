@@ -33,6 +33,8 @@ class AnalyzeRequest(BaseModel):
     stride: int = 1
     gif_stride: int = 1
     max_frames: int | None = None
+    gif_scale: float = 1.0
+    gif_max_frames: int | None = None
 
 
 @app.get("/clips")
@@ -66,6 +68,8 @@ def analyze_clip(req: AnalyzeRequest):
         stride=req.stride,
         gif_stride=req.gif_stride,
         max_frames=req.max_frames,
+        gif_scale=req.gif_scale,
+        gif_max_frames=req.gif_max_frames,
     )
 
     if result.get("gif_path"):

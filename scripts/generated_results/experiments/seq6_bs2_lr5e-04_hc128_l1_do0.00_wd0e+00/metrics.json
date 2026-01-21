@@ -1,0 +1,32 @@
+{
+  "config": {
+    "data_dir": "/home/limin/Documents/programming/video-anomaly-project/data/UCSD_Anomaly_Dataset.v1p2/UCSDped1/Train",
+    "model_path": "models/unet_lstm.pth",
+    "onnx_path": "models/unet_lstm.onnx",
+    "batch_size": 2,
+    "seq_len": 6,
+    "epochs": 1,
+    "lr": 0.0005,
+    "weight_decay": 0.0,
+    "device": "cuda",
+    "val_split": 0.1,
+    "seed": 42,
+    "num_workers": 0,
+    "hidden_channels": 128,
+    "lstm_layers": 1,
+    "dropout": 0.0,
+    "max_steps": null,
+    "save_dir": "generated_results/experiments/seq6_bs2_lr5e-04_hc128_l1_do0.00_wd0e+00"
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.0005077387442368976,
+      "val_loss": 0.00025157403169720146
+    }
+  ],
+  "best_val_loss": 0.00025157403169720146,
+  "model_path": "generated_results/experiments/seq6_bs2_lr5e-04_hc128_l1_do0.00_wd0e+00/unet_lstm.pth",
+  "onnx_path": "generated_results/experiments/seq6_bs2_lr5e-04_hc128_l1_do0.00_wd0e+00/unet_lstm.onnx",
+  "completed_at": "2026-01-21 16:18:14"
+}
