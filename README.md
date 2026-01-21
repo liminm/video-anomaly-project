@@ -59,6 +59,14 @@ data/UCSD_Anomaly_Dataset.v1p2/UCSDped2/
 - Serving: export to ONNX and run inference with `onnxruntime` for fast API
   responses.
 
+Model architecture (high level):
+- Encoder: stacked conv blocks downsample the input frames to a compact
+  spatiotemporal representation.
+- Bottleneck: ConvLSTM layers model temporal dynamics across the input sequence.
+- Decoder: upsampling + skip connections reconstruct the next frame.
+- Output: predicted next frame, compared to the true next frame to compute
+  reconstruction error.
+
 ## Application architecture
 - Data layer: UCSD frames in `data/`.
 - Notebook layer: `notebooks/notebook.ipynb` for EDA, feature analysis, and
@@ -101,6 +109,20 @@ Search space (current sweep):
 - `weight_decay`: [0.0, 1e-4]
 - `batch_size`: [4]
 - `seq_len`: [8]
+
+Training parameters and what was tried:
+- Hidden channels (model capacity): 128 vs. 256 to trade accuracy vs. memory.
+- LSTM depth: 1 vs. 2 layers to test temporal modeling depth.
+- Dropout: 0.0 vs. 0.3 to test regularization.
+- Learning rate: 5e-4 and 1e-3 to balance stability vs. convergence speed.
+- Weight decay: 0.0 vs. 1e-4 to reduce overfitting.
+- Batch size: 4 due to GPU memory constraints for ConvLSTM.
+- Sequence length: 8 frames to capture short-term motion patterns.
+
+Selection criteria:
+- The best run is chosen by lowest validation loss in the sweep output
+  (`generated_results/experiments/summary.csv`).
+- The notebook then evaluates the selected model with frame-level ROC AUC.
 
 ## Setup
 Python 3.11+ recommended.
