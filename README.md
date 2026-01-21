@@ -5,10 +5,13 @@ footage by learning to predict the next frame and flagging large reconstruction
 errors.
 
 ## Problem
-Manual monitoring of CCTV streams is error-prone and expensive. The goal is to
-automatically detect anomalous activity in pedestrian walkways. The model is
-trained only on normal behavior and should highlight frames where the predicted
-next frame deviates from reality.
+Manual monitoring of CCTV streams is error-prone and expensive. This project
+targets automated anomaly detection in pedestrian walkways (UCSD Ped2), where
+anomalies include bikes, carts, or other non-pedestrian motion. The system is
+trained only on normal pedestrian behavior and flags abnormal events by
+measuring how poorly a model can predict the next frame. The output is a
+frame-level anomaly score plus visual overlays (heatmap/bounding cues) to help
+operators or downstream systems quickly review suspicious segments.
 
 ## Dataset
 UCSD Anomaly Detection Dataset (Ped2).
