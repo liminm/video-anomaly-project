@@ -122,6 +122,12 @@ pip install -r requirements.app.txt
 jupyter notebook notebooks/notebook.ipynb
 ```
 
+The notebook covers:
+- Data preparation and cleaning.
+- EDA (frame statistics, motion analysis, ground-truth inspection).
+- Feature/target analysis and rationale for preprocessing choices.
+- Model training, hyperparameter sweep, evaluation, and inference demo.
+
 ## Training
 ```bash
 python train.py
@@ -129,6 +135,8 @@ python train.py
 Outputs:
 - `models/unet_lstm.pth`
 - `models/unet_lstm.onnx`
+
+This script is the exported version of the notebook training logic.
 
 ## Hyperparameter sweep
 ```bash
@@ -163,6 +171,10 @@ curl -X POST http://127.0.0.1:8001/analyze \
   -H "Content-Type: application/json" \
   -d '{"clip": "Test001", "save_gif": true, "stride": 1}'
 ```
+
+Prediction flow:
+- `app/main.py` loads the ONNX model and exposes `/analyze`.
+- The Streamlit UI calls this endpoint and renders the results.
 
 Environment variables (optional):
 - `UCSD_CLIP_ROOT`: override dataset path.
@@ -215,6 +227,20 @@ Fetch the service URL:
 ```bash
 gcloud run services describe video-anomaly-app --region europe-west3 --format='value(status.url)'
 ```
+
+Deployed URL:
+- https://video-anomaly-app-277455458775.europe-west3.run.app
+
+## Zoomcamp criteria checklist
+- Problem description: see “Problem description”.
+- EDA: see `notebooks/notebook.ipynb` (EDA section with plots + notes).
+- Model training + tuning: `train.py` and `run_experiments.py`.
+- Exported training script: `train.py` mirrors the notebook.
+- Reproducibility: `download_ucsd.py` + notebook + training scripts.
+- Model deployment: FastAPI (`app/main.py`) + Streamlit UI.
+- Dependency management: `requirements.txt` / `requirements.app.txt`.
+- Containerization: `Dockerfile` + run instructions above.
+- Cloud deployment: Cloud Run commands + deployed URL above.
 
 ## Notes
 - The dataset is not committed; use `download_ucsd.py` or your own copy.
