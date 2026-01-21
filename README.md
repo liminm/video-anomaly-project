@@ -4,6 +4,8 @@ Detect unusual events in surveillance footage by learning normal pedestrian
 motion and flagging frames where reconstruction error spikes.
 
 Deployed app: https://video-anomaly-app-277455458775.europe-west3.run.app
+Warning: The Cloud Run deployment can be slow for full-resolution clips and GIF
+generation. For faster runs, lower the GIF scale or enable quick mode in the UI.
 
 ![Clip selection](images/selection.gif)
 Caption: Select a test clip from the dropdown and launch detection.
@@ -32,6 +34,8 @@ Download and extract:
 ```bash
 python download_ucsd.py
 ```
+The script downloads the UCSD tarball (with a mirror fallback) and extracts it
+to `data/UCSD_Anomaly_Dataset.v1p2/`.
 
 Expected layout:
 ```
@@ -43,7 +47,8 @@ data/UCSD_Anomaly_Dataset.v1p2/UCSDped2/
 
 ## Dataset details
 - UCSD provides multiple subsets (Ped1, Ped2) with different scenes.
-- Each clip is a short sequence of frames; test clips include anomaly masks.
+- Each clip is a short sequence of frame images stored in a folder.
+- Test clips include per-frame anomaly masks in matching `_gt` folders.
 - Ground truth masks label anomalous objects, not just lighting shifts.
 
 ## Approach
@@ -138,6 +143,9 @@ Use the evaluation section in `notebooks/notebook.ipynb` to compute frame-level
 ROC AUC using ground-truth masks.
 
 ## Web service (local)
+The deployment API is built with FastAPI. The service entrypoint is
+`app/main.py`.
+
 Start the API:
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8001
