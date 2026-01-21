@@ -8,16 +8,16 @@ Warning: The Cloud Run deployment can be slow for full-resolution clips and GIF
 generation. For faster runs, lower the GIF scale or enable quick mode in the UI.
 
 ![Clip selection](images/selection.gif)
-Caption: Select a test clip from the dropdown and launch detection.
+_Select a test clip from the dropdown and launch detection._
 
 ![Results panel](images/result.png)
-Caption: Results summary with max score, alarm frames, and the score timeline.
+_Results summary with max score, alarm frames, and the score timeline._
 
 ![Anomaly visualization](images/video.gif)
-Caption: The video overlay highlights detected anomalies (e.g., a bike or cart).
+_The video overlay highlights detected anomalies (e.g., a bike or cart)._
 
 ![Anomaly visualization 2](images/video2.gif)
-Caption: Another detection example highlighting anomalous motion in the scene.
+_Another detection example highlighting anomalous motion in the scene._
 
 ## Problem description
 Manual monitoring of CCTV streams is error-prone and expensive. This project
