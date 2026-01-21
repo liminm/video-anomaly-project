@@ -16,6 +16,9 @@ Caption: Results summary with max score, alarm frames, and the score timeline.
 ![Anomaly visualization](images/video.gif)
 Caption: The video overlay highlights detected anomalies (e.g., a bike or cart).
 
+![Anomaly visualization 2](images/video2.gif)
+Caption: Another detection example highlighting anomalous motion in the scene.
+
 ## Problem description
 Manual monitoring of CCTV streams is error-prone and expensive. This project
 targets automated anomaly detection in pedestrian walkways (UCSD Ped2), where
