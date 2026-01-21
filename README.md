@@ -210,11 +210,42 @@ Optional (load clips from GCS instead of local disk):
 ```
 
 ## Cloud deployment (Google Cloud Run)
-Example deploy:
+Detailed steps:
+1) Set project + region:
+```bash
+gcloud config set project YOUR_PROJECT_ID
+gcloud config set run/region YOUR_REGION
+```
+
+2) Enable required services (one-time):
+```bash
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com
+```
+
+3) Create an Artifact Registry repo (one-time):
+```bash
+gcloud artifacts repositories create anomaly-repo \
+  --repository-format=docker \
+  --location=YOUR_REGION \
+  --description="Video anomaly app images"
+```
+
+4) Authenticate Docker to Artifact Registry:
+```bash
+gcloud auth configure-docker YOUR_REGION-docker.pkg.dev
+```
+
+5) Build + push the image:
+```bash
+docker build -t YOUR_REGION-docker.pkg.dev/YOUR_PROJECT_ID/anomaly-repo/video-anomaly-app:latest .
+docker push YOUR_REGION-docker.pkg.dev/YOUR_PROJECT_ID/anomaly-repo/video-anomaly-app:latest
+```
+
+6) Deploy to Cloud Run:
 ```bash
 gcloud run deploy video-anomaly-app \
   --region europe-west3 \
-  --source . \
+  --image YOUR_REGION-docker.pkg.dev/YOUR_PROJECT_ID/anomaly-repo/video-anomaly-app:latest \
   --port 8501 \
   --memory 4Gi \
   --timeout 900 \
