@@ -17,7 +17,7 @@ DATA_DIR = (
 )
 SAVE_ROOT = ROOT / "generated_results/experiments"
 
-EPOCHS = 4
+EPOCHS = 2
 VAL_SPLIT = 0.1
 MAX_STEPS = None
 DEVICE = None
@@ -32,6 +32,15 @@ SEARCH_SPACE = {
     "seq_len": [6, 8],
 }
 
+SEARCH_SPACE = {
+    "hidden_channels": [128, 256],
+    "lstm_layers": [1, 2],
+    "dropout": [0.0, 0.3],
+    "lr": [5e-4, 1e-3],
+    "weight_decay": [0.0, 1e-4],
+    "batch_size": [4],
+    "seq_len": [8],
+}
 
 def main() -> None:
     SAVE_ROOT.mkdir(parents=True, exist_ok=True)
