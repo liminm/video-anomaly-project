@@ -19,6 +19,9 @@ _The video overlay highlights detected anomalies (e.g., a bike or cart)._
 ![Anomaly visualization 2](images/video2.gif)
 _Another detection example highlighting anomalous motion in the scene._
 
+![Anomaly visualization 3](images/video3.gif)
+_Additional detection example with highlighted anomalous motion._
+
 ## Problem description
 Manual monitoring of CCTV streams is error-prone and expensive. This project
 targets automated anomaly detection in pedestrian walkways (UCSD Ped2), where
