@@ -7,6 +7,17 @@ Deployed app: https://video-anomaly-app-277455458775.europe-west3.run.app
 Warning: The Cloud Run deployment can be slow for full-resolution clips and GIF
 generation. For faster runs, lower the GIF scale or enable quick mode in the UI.
 
+## Where to find what you need
+- Problem description: `README.md` → “Problem description”.
+- Dataset + download: `download_ucsd.py` + “Dataset” section below.
+- EDA + analysis: `notebooks/notebook.ipynb`.
+- Model training: `train.py`.
+- Hyperparameter sweep: `run_experiments.py` + `generated_results/experiments/summary.csv`.
+- Inference + deployment API: `app/main.py` (FastAPI) + `src/lstm_detector.py`.
+- UI: `app/streamlit_app.py`.
+- Docker: `Dockerfile` + “Docker” section below.
+- Cloud deployment: “Cloud deployment (Google Cloud Run)” section below.
+
 ![Clip selection](images/selection.gif)
 _Select a test clip from the dropdown and launch detection._
 
