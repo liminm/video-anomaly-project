@@ -130,10 +130,19 @@ Interpretation:
 - The best run is `hc128_l2_do0.00_lr5e-04_wd0e+00_bs4_seq8` with
   best validation loss 2.2491e-04 and final train/val loss around 2.8e-04 /
   2.25e-04.
+- Best parameters from `summary.csv`: `hidden_channels=128`, `lstm_layers=2`,
+  `dropout=0.0`, `lr=5e-4`, `weight_decay=0.0`, `batch_size=4`, `seq_len=8`.
+- These best parameters are the defaults in `train.py` (`default_config`).
 - All top runs favor no dropout and no weight decay, with small learning rates.
 - Differences between the top 5 are minor (on the order of 1e-05), so the best
   model is chosen primarily by validation loss but performance is consistent
   across the leading configs.
+
+Latest training run (defaults, 8 epochs):
+- Train loss improved from 4.7e-04 (epoch 1) to ~5e-05 by epoch 8.
+- Validation loss improved from 1.4e-04 (epoch 1) to ~5e-05 by epoch 8.
+- Convergence is smooth and stable, indicating the default configuration is a
+  good fit for this dataset.
 
 Training parameters and what was tried:
 - Hidden channels (model capacity): 128 vs. 256 to trade accuracy vs. memory.
