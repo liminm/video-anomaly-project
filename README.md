@@ -102,7 +102,10 @@ Model architecture (high level):
 ## Results and model selection
 - Frame-level ROC AUC is computed in the notebook evaluation section.
 - Example result on a small subset of clips: AUC ~= 1.00 (see notebook cell).
-- Model selection uses validation loss from the hyperparameter sweep.
+- Model selection uses validation loss from the hyperparameter sweep
+  (`generated_results/experiments/summary.csv`).
+- The completed sweep produced 32 runs; the top configs are tightly clustered,
+  suggesting the model is relatively stable across these settings.
 
 Search space (current sweep):
 - `hidden_channels`: [128, 256]
@@ -113,7 +116,7 @@ Search space (current sweep):
 - `batch_size`: [4]
 - `seq_len`: [8]
 
-Top 5 runs (lowest validation loss):
+Top 5 runs (lowest validation loss, from `summary.csv`):
 
 | Rank | Best val loss | hidden_channels | lstm_layers | dropout | lr | weight_decay | batch_size | seq_len |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -122,6 +125,15 @@ Top 5 runs (lowest validation loss):
 | 3 | 2.3281e-04 | 256 | 1 | 0.0 | 1e-3 | 0.0 | 4 | 8 |
 | 4 | 2.4323e-04 | 128 | 1 | 0.0 | 1e-3 | 0.0 | 4 | 8 |
 | 5 | 2.4367e-04 | 256 | 2 | 0.0 | 1e-3 | 0.0 | 4 | 8 |
+
+Interpretation:
+- The best run is `hc128_l2_do0.00_lr5e-04_wd0e+00_bs4_seq8` with
+  best validation loss 2.2491e-04 and final train/val loss around 2.8e-04 /
+  2.25e-04.
+- All top runs favor no dropout and no weight decay, with small learning rates.
+- Differences between the top 5 are minor (on the order of 1e-05), so the best
+  model is chosen primarily by validation loss but performance is consistent
+  across the leading configs.
 
 Training parameters and what was tried:
 - Hidden channels (model capacity): 128 vs. 256 to trade accuracy vs. memory.
