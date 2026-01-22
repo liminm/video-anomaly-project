@@ -292,6 +292,13 @@ gcloud run deploy video-anomaly-app \
   --set-env-vars API_PORT=8001,UI_PORT=8501,GCS_BUCKET=YOUR_BUCKET,GCS_PREFIX=YOUR_PREFIX
 ```
 
+7) Upload the dataset to GCS (required for Cloud Run):
+```bash
+gcloud storage rsync -r \
+  data/UCSD_Anomaly_Dataset.v1p2/UCSDped2/Test \
+  gs://YOUR_BUCKET/UCSD_Anomaly_Dataset.v1p2/UCSDped2/Test
+```
+
 Fetch the service URL:
 ```bash
 gcloud run services describe video-anomaly-app --region europe-west3 --format='value(status.url)'
