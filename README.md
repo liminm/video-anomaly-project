@@ -116,6 +116,16 @@ Search space (current sweep):
 - `batch_size`: [4]
 - `seq_len`: [8]
 
+Top 5 runs (lowest validation loss):
+
+| Rank | Best val loss | hidden_channels | lstm_layers | dropout | lr | weight_decay | batch_size | seq_len |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 2.2491e-04 | 128 | 2 | 0.0 | 5e-4 | 0.0 | 4 | 8 |
+| 2 | 2.2736e-04 | 256 | 1 | 0.0 | 5e-4 | 0.0 | 4 | 8 |
+| 3 | 2.3281e-04 | 256 | 1 | 0.0 | 1e-3 | 0.0 | 4 | 8 |
+| 4 | 2.4323e-04 | 128 | 1 | 0.0 | 1e-3 | 0.0 | 4 | 8 |
+| 5 | 2.4367e-04 | 256 | 2 | 0.0 | 1e-3 | 0.0 | 4 | 8 |
+
 Training parameters and what was tried:
 - Hidden channels (model capacity): 128 vs. 256 to trade accuracy vs. memory.
 - LSTM depth: 1 vs. 2 layers to test temporal modeling depth.
