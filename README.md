@@ -144,6 +144,25 @@ Latest training run (defaults, 8 epochs):
 - Convergence is smooth and stable, indicating the default configuration is a
   good fit for this dataset.
 
+Training flow clarity:
+- First, a hyperparameter sweep is run (`run_experiments.py`) to select the
+  lowest validation loss configuration.
+- Then, a longer training run is executed with the best parameters
+  (`train.py`, 8 epochs by default) to produce the final model and ONNX export.
+
+Per-epoch losses from the longer run:
+
+| Epoch | Train loss | Val loss |
+| --- | --- | --- |
+| 1 | 4.7e-04 | 1.4e-04 |
+| 2 | 1.2e-04 | 1.0e-04 |
+| 3 | 9.0e-05 | 9.0e-05 |
+| 4 | 7.0e-05 | 6.0e-05 |
+| 5 | 6.0e-05 | 7.0e-05 |
+| 6 | 6.0e-05 | 5.0e-05 |
+| 7 | 5.0e-05 | 5.0e-05 |
+| 8 | 5.0e-05 | 5.0e-05 |
+
 Training parameters and what was tried:
 - Hidden channels (model capacity): 128 vs. 256 to trade accuracy vs. memory.
 - LSTM depth: 1 vs. 2 layers to test temporal modeling depth.
