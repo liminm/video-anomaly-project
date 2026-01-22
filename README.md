@@ -13,14 +13,11 @@ _Select a test clip from the dropdown and launch detection._
 ![Results panel](images/result.png)
 _Results summary with max score, alarm frames, and the score timeline._
 
-![Anomaly visualization](images/video.gif)
+![Anomaly visualization](images/video1.gif)
 _The video overlay highlights detected anomalies (e.g., a bike or cart)._
 
 ![Anomaly visualization 2](images/video2.gif)
 _Another detection example highlighting anomalous motion in the scene._
-
-![Anomaly visualization 3](images/video3.gif)
-_Additional detection example with highlighted anomalous motion._
 
 ## Problem description
 Manual monitoring of CCTV streams is error-prone and expensive. This project
